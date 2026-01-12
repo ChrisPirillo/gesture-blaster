@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <!-- SEO & Metadata -->
+    <title>Gesture Blaster Arcade Experience</title>
+    <meta name="description" content="Experience Gesture Blaster, a high-intensity gesture-controlled arcade game. Use hand tracking technology to aim and zap targets in real-time. Created by Chris Pirillo.">
+    <meta name="keywords" content="Gesture Blaster, arcade game, hand tracking game, motion control, web browser game, Chris Pirillo, interactive gaming">
+    <link rel="canonical" href="https://pirillo.com/arcade/gesture-blaster.html">
+    <meta name="author" content="Chris Pirillo">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pirillo.com/arcade/gesture-blaster.html">
+    <meta property="og:title" content="Gesture Blaster Arcade Experience">
+    <meta property="og:description" content="Aim with your hands and blast through targets in this immersive motion-controlled arcade experience.">
+    <meta property="og:image" content="https://pirillo.com/arcade/images/gesture-blaster.png">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@ChrisPirillo">
+    <meta name="twitter:creator" content="@ChrisPirillo">
+    <meta name="twitter:title" content="Gesture Blaster Arcade">
+    <meta name="twitter:description" content="Experience the future of browser gaming with Gesture Blaster gesture controls.">
+    <meta name="twitter:image" content="https://pirillo.com/arcade/images/gesture-blaster.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "Gesture Blaster",
+      "alternateName": "Gesture Blaster",
+      "author": {
+        "@type": "Person",
+        "name": "Chris Pirillo",
+        "url": "https://pirillo.com"
+      },
+      "description": "A browser-based motion-controlled arcade game using hand-tracking gestures.",
+      "genre": "Arcade",
+      "url": "https://pirillo.com/arcade/gesture-blaster.html",
+      "image": "https://pirillo.com/arcade/images/gesture-blaster.png",
+      "applicationCategory": "Game",
+      "operatingSystem": "Web Browser"
+    }
+    </script>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1CQ4D3VQ3L"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-1CQ4D3VQ3L');
+    </script>
+
+    <!-- Resource Hints -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <style>
+        /* CSS to hide SEO-only content */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .score-container, .lives-container {
+            font-size: 2rem;
+        }
+        
+        .lives-container {
+            color: #ff0055;
+        }
+
+        .status-container {
+            font-size: 1.2rem;
+            color: #0ff;
+            position: absolute;
+            top: 80px;
+            left: 40px;
+        }
+
+        /* Floating Text */
+        #floating-text-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .float-text {
+            position: absolute;
+            font-weight: 900;
+            font-size: 24px;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 0 0 5px currentColor;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+
+        /* Damage Flash */
+        #damage-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 50%, rgba(255, 0, 0, 0.6) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+            transition: opacity 0.1s;
+        }
+
+        /* Screens */
+        .screen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #0ff;
+            transition: opacity 0.5s ease;
+            pointer-events: auto;
+        }
+        
+        .screen-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Styles for Title and Headings */
+        .game-title {
+            font-size: 4rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 10px;
+            margin: 0 0 20px 0;
+            text-shadow: 0 0 20px #0ff;
+            text-align: center;
+        }
+        
+        .game-subtitle {
+            font-size: 1.5rem;
+            color: #aaa;
+            font-weight: 400;
+            margin-bottom: 50px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+
+        .highlight { color: #ff0055; font-weight: bold; }
+
+        .interactive-btn {
+            position: relative;
+            background: transparent;
+            border: 3px solid #0ff;
+            color: #0ff;
+            padding: 20px 60px;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            overflow: hidden;
+            font-family: inherit;
+            margin-top: 20px;
+            width: 300px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .btn-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background-color: #0ff;
+            z-index: -1;
+            transition: width 0.1s linear; 
+        }
+        
+        .interactive-btn.active-hover {
+            color: #000;
+            text-shadow: none;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: #0ff;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #input-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); 
+            opacity: 0.1; 
+            z-index: 0;
+        }
+
+        #reticle {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 200; 
+            mix-blend-mode: screen;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #reticle.locked {
+            border-color: #ff0055;
+            width: 60px;
+            height: 60px;
+            border-width: 3px;
+            box-shadow: 0 0 15px #ff0055;
+        }
+
+        #reticle::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+        }
+    </style>
+    
+    <!-- Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <header class="sr-only">
+        <h1>Gesture Blaster - Gesture Controlled Arcade Game by Chris Pirillo</h1>
+    </header>
+
+    <main>
+        <!-- Loading Screen -->
+        <section id="loading-screen" class="screen-overlay" aria-live="polite">
+            <div class="loader"></div>
+            <div class="loading-text">Initializing Systems</div>
+            <div class="sub-text">Loading Neural Network... Please allow camera access.</div>
+        </section>
+
+        <!-- Start Screen -->
+        <section id="start-screen" class="screen-overlay hidden">
+            <h2 class="game-title">Gesture Blaster</h2>
+            <h3 class="game-subtitle">POINT your finger to aim.<br>Hold over targets to <span class="highlight">ZAP</span> them.</h3>
+            <div id="btn-start" class="interactive-btn" data-action="start" role="button" tabindex="0">
+                START
+                <div class="btn-fill"></div>
+            </div>
+        </section>
+
+        <!-- Game Over Screen -->
+        <section id="game-over-screen" class="screen-overlay hidden">
+            <h2 class="game-title" style="color: #ff0055; text-shadow: 0 0 20px #ff0055;">Mission Failed</h2>
+            <div class="final-score" style="font-size: 2rem; margin-bottom: 20px;">SCORE: <span id="final-score-val">0</span></div>
+            <div id="btn-restart" class="interactive-btn" data-action="restart" role="button" tabindex="0">
+                RESTART
+                <div class="btn-fill"></div>
+            </div>
+        </section>
+
+        <div id="damage-overlay" aria-hidden="true"></div>
+
+        <div id="ui-layer">
+            <nav class="hud-top">
+                <div class="lives-container">LIVES: <span id="lives">5</span></div>
+                <div class="score-container">SCORE: <span id="score">0</span></div>
+            </nav>
+            <div class="status-container">STATUS: <span id="gesture-status">WAITING</span></div>
+            <div id="floating-text-container" aria-hidden="true"></div>
+        </div>
+
+        <div id="reticle" style="display:none;" aria-hidden="true"></div>
+
+        <video id="input-video" playsinline muted autoplay aria-hidden="true"></video>
+        
+        <div id="canvas-container" role="application" aria-label="Game Canvas"></div>
+    </main>
+
+    <footer class="sr-only">
+        <p>Gesture Blaster created by Chris Pirillo. Experience real-time gesture control in your browser.</p>
+    </footer>
+
+    <!-- STABLE PRODUCTION JAVASCRIPT -->
+    <script>
+        /**
+         * AUDIO SYSTEM
+         */
+        class SoundSynth {
+            constructor() {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.3; 
+                this.masterGain.connect(this.ctx.destination);
+            }
+
+            playTone(freq, type, duration) {
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playHover() { this.playTone(400, 'sine', 0.1); }
+            playSelect() { this.playTone(800, 'square', 0.2); }
+            playHit() { this.playTone(150, 'square', 0.15); }
+            playSpawn() { this.playTone(600, 'sine', 0.3); }
+            playDamage() { this.playTone(100, 'sawtooth', 0.4); }
+            playGameOver() { this.playTone(300, 'triangle', 1.5); }
+        }
+        const audio = new SoundSynth();
+
+        /**
+         * GAME CONFIG
+         */
+        const CONFIG = {
+            aimAssistStrength: 0.1, 
+            aimAssistRadius: 0.15,
+            discSpeed: 3.0, 
+            spawnDepth: -9, 
+            spawnXBound: 12, 
+            killXBound: 12, 
+            maxDiscs: 5,
+            startingLives: 5,
+            smoothing: 0.15,
+            zapTime: 0.1,
+            buttonHoverTime: 1.0 
+        };
+
+        const STATE = {
+            mode: 'LOADING', 
+            score: 0,
+            lives: CONFIG.startingLives,
+            rawHand: null, 
+            hand: null,
+            currentLockTarget: null,
+            lockTimer: 0,
+            
+            hoveredButton: null,
+            buttonTimer: 0
+        };
+
+        /**
+         * THREE.JS SETUP
+         */
+        let scene, camera, renderer, gameGroup, laserLine, explosionSystem, reticleEl, discs = [];
+        let pPos, pVel, pLife, particleCount = 200;
+        let discGeometry, discMaterial, raycaster, clock;
+
+        function initThree() {
+            raycaster = new THREE.Raycaster();
+            clock = new THREE.Clock();
+            discGeometry = new THREE.TorusGeometry(0.8, 0.25, 16, 32);
+            discMaterial = new THREE.MeshPhongMaterial({ color: 0x00ccff, emissive: 0x0044aa, shininess: 100 });
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050505, 0.03);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+            const pointLight = new THREE.PointLight(0x00ffff, 1, 20);
+            scene.add(pointLight);
+
+            camera.position.z = 5;
+
+            gameGroup = new THREE.Group();
+            scene.add(gameGroup);
+
+            // Removed GridHelper as requested
+            
+            const laserMaterial = new THREE.LineBasicMaterial({ color: 0xff0055, transparent: true, opacity: 0.6, linewidth: 2 });
+            const laserGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-10)]);
+            laserLine = new THREE.Line(laserGeo, laserMaterial);
+            laserLine.frustumCulled = false; 
+            scene.add(laserLine);
+            
+            reticleEl = document.getElementById('reticle');
+
+            const particleGeo = new THREE.BufferGeometry();
+            pPos = new Float32Array(particleCount * 3);
+            pVel = []; 
+            pLife = new Float32Array(particleCount); 
+            particleGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            const particleMat = new THREE.PointsMaterial({ color: 0xffaa00, size: 0.15, transparent: true, opacity: 1, blending: THREE.AdditiveBlending });
+            explosionSystem = new THREE.Points(particleGeo, particleMat);
+            scene.add(explosionSystem);
+            for(let i=0; i<particleCount; i++) { pLife[i] = 0; pVel.push(new THREE.Vector3()); }
+        }
+
+        /**
+         * GAMEPLAY FUNCTIONS
+         */
+        function spawnDisc() {
+            if (discs.length >= CONFIG.maxDiscs || STATE.mode !== 'PLAYING') return;
+
+            const mesh = new THREE.Mesh(discGeometry, discMaterial);
+            const side = Math.random() > 0.5 ? 1 : -1; 
+            const startX = side * -CONFIG.spawnXBound;
+            const startY = (Math.random() - 0.4) * 10;
+            const startZ = CONFIG.spawnDepth;
+
+            mesh.position.set(startX, startY, startZ);
+            const velocity = new THREE.Vector3(side * CONFIG.discSpeed, (Math.random() - 0.5) * 1, 0);
+            mesh.rotation.x = Math.random() * Math.PI;
+            mesh.rotation.y = Math.random() * Math.PI;
+            mesh.userData = {
+                velocity: velocity,
+                rotSpeed: { x: Math.random() * 2, y: Math.random() * 2 }
+            };
+
+            gameGroup.add(mesh);
+            discs.push(mesh);
+            audio.playSpawn();
+        }
+
+        function createExplosion(position) {
+            let spawned = 0;
+            for(let i=0; i<particleCount; i++) {
+                if (pLife[i] <= 0 && spawned < 20) { 
+                    pLife[i] = 1.0;
+                    pPos[i*3] = position.x;
+                    pPos[i*3+1] = position.y;
+                    pPos[i*3+2] = position.z;
+                    pVel[i].set((Math.random() - 0.5)*5, (Math.random() - 0.5)*5, (Math.random() - 0.5)*5);
+                    spawned++;
+                }
+            }
+        }
+
+        function updateParticles(dt) {
+            const positions = explosionSystem.geometry.attributes.position.array;
+            for(let i=0; i<particleCount; i++) {
+                if(pLife[i] > 0) {
+                    pLife[i] -= dt * 2.0; 
+                    positions[i*3] += pVel[i].x * dt;
+                    positions[i*3+1] += pVel[i].y * dt;
+                    positions[i*3+2] += pVel[i].z * dt;
+                    pVel[i].y -= 9.8 * dt * 0.5;
+                } else { positions[i*3] = 9999; }
+            }
+            explosionSystem.geometry.attributes.position.needsUpdate = true;
+        }
+
+        function spawnFloatingText(text, x, y, color) {
+            const container = document.getElementById('floating-text-container');
+            const el = document.createElement('div');
+            el.className = 'float-text';
+            el.innerText = text;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.style.color = color;
+            container.appendChild(el);
+            setTimeout(() => { if(el.parentNode) el.parentNode.removeChild(el); }, 1000);
+        }
+
+        function handleEscape(position) {
+            STATE.lives--;
+            document.getElementById('lives').innerText = STATE.lives;
+            audio.playDamage();
+            const overlay = document.getElementById('damage-overlay');
+            overlay.style.opacity = 1;
+            setTimeout(() => { overlay.style.opacity = 0; }, 100);
+
+            const screenPos = position.clone().project(camera);
+            const cssX = (screenPos.x + 1) / 2 * window.innerWidth;
+            const cssY = (-screenPos.y + 1) / 2 * window.innerHeight;
+            spawnFloatingText("ESCAPED!", cssX, cssY, 'red');
+
+            if (STATE.lives <= 0) changeState('GAMEOVER');
+        }
+
+        function changeState(newState) {
+            STATE.mode = newState;
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+
+            if (newState === 'MENU') {
+                document.getElementById('start-screen').classList.remove('hidden');
+            } else if (newState === 'PLAYING') {
+                STATE.score = 0;
+                STATE.lives = CONFIG.startingLives;
+                document.getElementById('score').innerText = '0';
+                document.getElementById('lives').innerText = STATE.lives;
+                for(let d of discs) gameGroup.remove(d);
+                discs = [];
+                spawnDisc();
+                spawnDisc();
+            } else if (newState === 'GAMEOVER') {
+                document.getElementById('game-over-screen').classList.remove('hidden');
+                document.getElementById('final-score-val').innerText = STATE.score;
+                audio.playGameOver();
+            }
+        }
+
+        function handleMenuInteraction(cssX, cssY, dt) {
+            let activeScreen = null;
+            if (STATE.mode === 'MENU') activeScreen = document.getElementById('start-screen');
+            if (STATE.mode === 'GAMEOVER') activeScreen = document.getElementById('game-over-screen');
+            if (!activeScreen) return;
+
+            const buttons = activeScreen.querySelectorAll('.interactive-btn');
+            let hit = false;
+            buttons.forEach(btn => {
+                const rect = btn.getBoundingClientRect();
+                if (cssX >= rect.left && cssX <= rect.right && cssY >= rect.top && cssY <= rect.bottom) {
+                    hit = true;
+                    if (STATE.hoveredButton !== btn) {
+                        STATE.hoveredButton = btn;
+                        STATE.buttonTimer = 0;
+                        btn.classList.add('active-hover');
+                        audio.playHover();
+                    } else {
+                        STATE.buttonTimer += dt;
+                        const progress = Math.min(1, STATE.buttonTimer / CONFIG.buttonHoverTime);
+                        btn.querySelector('.btn-fill').style.width = (progress * 100) + '%';
+                        if (STATE.buttonTimer >= CONFIG.buttonHoverTime) {
+                            audio.playSelect();
+                            const action = btn.getAttribute('data-action');
+                            if (action === 'start' || action === 'restart') changeState('PLAYING');
+                            btn.querySelector('.btn-fill').style.width = '0%';
+                            STATE.hoveredButton = null;
+                        }
+                    }
+                } else {
+                    btn.classList.remove('active-hover');
+                    btn.querySelector('.btn-fill').style.width = '0%';
+                }
+            });
+            if (!hit) { STATE.hoveredButton = null; STATE.buttonTimer = 0; }
+        }
+
+        function getCorrectedCoordinates(hx, hy) {
+            const vw = videoElement.videoWidth || 640;
+            const vh = videoElement.videoHeight || 480;
+            const sw = window.innerWidth;
+            const sh = window.innerHeight;
+            const va = vw / vh, sa = sw / sh;
+            let fx, fy;
+            if (sa > va) {
+                const s = sw / vw, sch = vh * s, off = (sch - sh) / 2;
+                fx = hx * sw; fy = hy * sch - off;
+            } else {
+                const s = sh / vh, scw = vw * s, off = (scw - sw) / 2;
+                fx = hx * scw - off; fy = hy * sh;
+            }
+            fx = sw - fx;
+            return { x: fx, y: fy };
+        }
+
+        function updateGame() {
+            if (!clock) return;
+            const dt = clock.getDelta();
+            if (STATE.rawHand) {
+                const targetPos = getCorrectedCoordinates(STATE.rawHand.x, STATE.rawHand.y);
+                if (!STATE.hand) { STATE.hand = { x: targetPos.x, y: targetPos.y }; }
+                else { STATE.hand.x += (targetPos.x - STATE.hand.x) * CONFIG.smoothing; STATE.hand.y += (targetPos.y - STATE.hand.y) * CONFIG.smoothing; }
+            } else { STATE.hand = null; }
+            
+            updateParticles(dt);
+            if (STATE.hand) {
+                const cx = STATE.hand.x, cy = STATE.hand.y;
+                let nx = (cx / window.innerWidth) * 2 - 1, ny = -(cy / window.innerHeight) * 2 + 1;
+                reticleEl.style.transform = `translate(${cx}px, ${cy}px)`;
+                reticleEl.style.display = 'flex';
+
+                if (STATE.mode === 'MENU' || STATE.mode === 'GAMEOVER') {
+                    handleMenuInteraction(cx, cy, dt);
+                    laserLine.visible = false;
+                } else if (STATE.mode === 'PLAYING') {
+                    for (let i = discs.length - 1; i >= 0; i--) {
+                        const disc = discs[i];
+                        disc.position.addScaledVector(disc.userData.velocity, dt);
+                        disc.rotation.x += disc.userData.rotSpeed.x * dt;
+                        disc.rotation.y += disc.userData.rotSpeed.y * dt;
+                        if (Math.abs(disc.position.x) > CONFIG.killXBound) {
+                            const p = disc.position.clone(); gameGroup.remove(disc); discs.splice(i, 1);
+                            handleEscape(p); if(STATE.mode === 'PLAYING') setTimeout(spawnDisc, 500); 
+                        }
+                    }
+                    if (discs.length < CONFIG.maxDiscs && Math.random() < 0.05) spawnDisc();
+
+                    let tx = nx, ty = ny, hasLock = false, lockPos = null, closestDist = CONFIG.aimAssistRadius;
+                    for(let disc of discs) {
+                        const sp = disc.position.clone().project(camera);
+                        const dist = new THREE.Vector2(sp.x, sp.y).distanceTo(new THREE.Vector2(nx, ny));
+                        if (dist < closestDist) { closestDist = dist; tx = nx * 0.9 + sp.x * 0.1; ty = ny * 0.9 + sp.y * 0.1; hasLock = true; lockPos = disc; }
+                    }
+
+                    if (hasLock && lockPos) {
+                        reticleEl.classList.add('locked');
+                        raycaster.setFromCamera(new THREE.Vector2(tx, ty), camera);
+                        const ro = new THREE.Vector3(2, -2, 4); 
+                        const lp = laserLine.geometry.attributes.position.array;
+                        lp[0] = ro.x; lp[1] = ro.y; lp[2] = ro.z;
+                        lp[3] = lockPos.position.x; lp[4] = lockPos.position.y; lp[5] = lockPos.position.z;
+                        laserLine.geometry.attributes.position.needsUpdate = true;
+                        laserLine.visible = true;
+                        if (STATE.currentLockTarget === lockPos) { STATE.lockTimer += dt; } else { STATE.currentLockTarget = lockPos; STATE.lockTimer = 0; }
+                        if (STATE.lockTimer > CONFIG.zapTime) {
+                             createExplosion(lockPos.position); audio.playHit(); gameGroup.remove(lockPos);
+                             discs.splice(discs.indexOf(lockPos), 1); STATE.score += 100;
+                             document.getElementById('score').innerText = STATE.score;
+                             spawnFloatingText("ZAPPED!", cx, cy - 50, '#ff0055');
+                             spawnDisc(); STATE.currentLockTarget = null; STATE.lockTimer = 0;
+                        }
+                    } else { reticleEl.classList.remove('locked'); STATE.currentLockTarget = null; STATE.lockTimer = 0; laserLine.visible = false; }
+                }
+            } else { reticleEl.style.display = 'none'; laserLine.visible = false; }
+            renderer.render(scene, camera);
+            requestAnimationFrame(updateGame);
+        }
+
+        const videoElement = document.getElementById('input-video');
+        const gestureStatus = document.getElementById('gesture-status');
+
+        function onResults(results) {
+            if (STATE.mode === 'LOADING') changeState('MENU');
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                STATE.rawHand = { x: landmarks[8].x, y: landmarks[8].y };
+                gestureStatus.innerText = "ACTIVE"; gestureStatus.style.color = "#0ff";
+            } else { STATE.rawHand = null; gestureStatus.innerText = "NO HAND"; gestureStatus.style.color = "#555"; }
+        }
+
+        window.onload = function() {
+            if (typeof THREE !== 'undefined') {
+                initThree();
+                const hands = new Hands({locateFile: (file) => `https://unpkg.com/@mediapipe/hands@0.4.1646424915/${file}`});
+                hands.setOptions({maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5});
+                hands.onResults(onResults);
+                let frameCounter = 0;
+                const cameraUtils = new Camera(videoElement, {
+                    onFrame: async () => { try { if (frameCounter % 2 === 0) await hands.send({image: videoElement}); frameCounter++; } catch (e) {} },
+                    width: 640, height: 480
+                });
+                cameraUtils.start();
+                updateGame();
+                window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+            }
+        };
+    </script>
+</body>
+</html>
